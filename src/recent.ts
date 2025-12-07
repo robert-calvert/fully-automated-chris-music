@@ -1,6 +1,8 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import { getLastFmRecentTracks } from "./lastfm/service";
 import { addUniqueTracksToSpotifyPlaylist } from "./spotify/service";
+
+dotenv.config({ path: __dirname + "/../.env" });
 
 async function runRecentTracksJob() {
     const prefix = "[Recent Tracks]";
