@@ -1,0 +1,23 @@
+{
+  "name": "fully-automated-chris-music",
+  "version": "1.0.0",
+  "description": "A simple integration to add top and recent tracks from a Last.fm profile to Spotify playlists.",
+  "main": "index.ts",
+  "scripts": {
+    "build": "npx tsc"
+  },
+  "keywords": [],
+  "author": "Robert Calvert",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "prettier": "3.7.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
