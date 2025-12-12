@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import { getLastFmTopTracks } from "./lastfm/service";
 import { addUniqueTracksToSpotifyPlaylist } from "./spotify/service";
 
-dotenv.config({ path: __dirname + "/../.env" });
+dotenv.config({ path: __dirname + "/../.env", quiet: true });
 
 async function runTopTracksJob() {
     const prefix = "[Top Tracks]";
