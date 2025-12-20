@@ -60,5 +60,5 @@ SPOTIFY_TOP_PLAYLIST_ID=
 # The ID of the Spotify playlist to add recent tracks to.
 SPOTIFY_RECENT_PLAYLIST_ID=
 # An optional maximum age, in days, of a track in the recent playlist before it is deleted on the next run.
-RECENT_ROLLING_MAX_AGE_DAYS=30
+SPOTIFY_RECENT_ROLLING_MAX_AGE_DAYS=30
 ```
