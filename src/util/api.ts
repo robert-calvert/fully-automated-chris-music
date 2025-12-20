@@ -38,6 +38,24 @@ export async function apiPost<T>(
     );
 }
 
+export async function apiDelete<T>(
+    requestUrl: string,
+    requestBody: Record<string, any>,
+    validationSchema: ZodType<T>,
+    headers?: Record<string, string>
+): Promise<T> {
+    return handleAxiosResponse(
+        await requestWithRetry({
+            method: "DELETE",
+            url: requestUrl,
+            data: requestBody,
+            headers,
+            timeout: REQUEST_TIMEOUT_MILLIS,
+        }),
+        validationSchema
+    );
+}
+
 async function requestWithRetry(
     config: AxiosRequestConfig,
     retries: number = 1
@@ -56,6 +74,14 @@ async function requestWithRetry(
 
             return response;
         } catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data
+                        ? JSON.stringify(error.response.data)
+                        : "The request failed but no error was included."
+                );
+            }
+
             throw error;
         }
     }
@@ -69,13 +95,6 @@ async function handleAxiosResponse<T>(
         const responseBody = validationSchema.parse(response.data);
         return responseBody;
     } catch (error: unknown) {
-        if (axios.isAxiosError(error)) {
-            throw new Error(
-                error.message ||
-                    "The request failed but no error message was included."
-            );
-        }
-
         if (error instanceof ZodError) {
             throw new Error(z.prettifyError(error));
         }

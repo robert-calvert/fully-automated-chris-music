@@ -1,5 +1,6 @@
 import { URLSearchParams } from "url";
 import {
+    lastFmRecentCutoffSecondsSchema,
     lastFmRecentTracksResponseSchema,
     lastFmTopTracksMinPlayCountSchema,
     lastFmTopTracksPeriodSchema,
@@ -13,12 +14,13 @@ const LAST_FM_API_BASE_URL = "https://ws.audioscrobbler.com/2.0/";
 const LAST_FM_API_MAX_LIMIT = 200;
 
 export async function getLastFmRecentTracks(): Promise<Track[]> {
-    const recentCutoffSeconds = Number(
+    const recentCutoffSecondsResult = lastFmRecentCutoffSecondsSchema.safeParse(
         process.env.LASTFM_RECENT_CUTOFF_SECONDS
     );
-    if (isNaN(recentCutoffSeconds)) {
+    if (!recentCutoffSecondsResult.success) {
         throw new Error(
-            "Missing or invalid environment variable for Last.fm recent tracks cutoff."
+            "Missing or invalid environment variable for Last.fm recent tracks cutoff: " +
+                z.prettifyError(recentCutoffSecondsResult.error)
         );
     }
 
@@ -28,7 +30,7 @@ export async function getLastFmRecentTracks(): Promise<Track[]> {
     const unixNowSeconds = Math.ceil(Date.now() / 1000);
     requestParams.append(
         "from",
-        (unixNowSeconds - recentCutoffSeconds).toString()
+        (unixNowSeconds - recentCutoffSecondsResult.data).toString()
     );
     requestParams.append("to", unixNowSeconds.toString());
 

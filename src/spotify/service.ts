@@ -1,16 +1,18 @@
 import {
     spotifyAccessTokenResponseSchema,
-    spotifyAddPlaylistTracksResponseSchema,
+    spotifyMutatePlaylistTracksResponseSchema,
     SpotifyPlaylistTracksResponse,
     spotifyPlaylistTracksResponseSchema,
+    spotifyRecentRollingMaxAgeDaysSchema,
     spotifySearchTracksResponseSchema,
 } from "./types";
-import { apiGet, apiPost } from "../util/api";
+import { apiDelete, apiGet, apiPost } from "../util/api";
 import { Track } from "../track";
 
-const SPOTIFY_API_BASE_URL = "https://api.spotify.com/v1";
-const SPOTIFY_MAX_PLAYLIST_ITEMS_LIMIT = 50;
-const SPOTIFY_MARKET = process.env.SPOTIFY_MARKET || "NZ";
+const API_BASE_URL = "https://api.spotify.com/v1";
+const MARKET = process.env.SPOTIFY_MARKET || "NZ";
+const MAX_PLAYLIST_ITEMS_LIMIT = 50;
+const MAX_PLAYLIST_MUTATIONS_LIMIT = 100;
 
 async function getSpotifyAccessToken(): Promise<string> {
     const refreshToken = process.env.SPOTIFY_REFRESH_TOKEN;
@@ -44,14 +46,14 @@ async function getPageOfSpotifyPlaylistItems(
     offset: number
 ): Promise<SpotifyPlaylistTracksResponse> {
     const requestParams = new URLSearchParams({
-        fields: "total,limit,offset,next,items(track(id,name,artists))",
-        market: SPOTIFY_MARKET,
-        limit: SPOTIFY_MAX_PLAYLIST_ITEMS_LIMIT.toString(),
+        fields: "total,limit,offset,next,items(added_at,track(id,name,artists))",
+        market: MARKET,
+        limit: MAX_PLAYLIST_ITEMS_LIMIT.toString(),
         offset: offset.toString(),
     });
 
     return await apiGet(
-        SPOTIFY_API_BASE_URL +
+        API_BASE_URL +
             "/playlists/" +
             playlistId +
             "/tracks?" +
@@ -85,6 +87,9 @@ async function getSpotifyPlaylistTracks(
                     .map((artist) => artist.name)
                     .join(", "),
                 spotifyId: item.track.id,
+                spotifyAddedAtUnixSeconds: Math.ceil(
+                    new Date(item.added_at).getTime() / 1000
+                ),
             });
         }
 
@@ -92,11 +97,55 @@ async function getSpotifyPlaylistTracks(
             break;
         }
 
-        offset += SPOTIFY_MAX_PLAYLIST_ITEMS_LIMIT;
+        offset += MAX_PLAYLIST_ITEMS_LIMIT;
         hasNext = pageResponse.next !== null;
     }
 
     return allTracks;
+}
+
+async function applyRollingWindowToSpotifyPlaylist(
+    accessToken: string,
+    playlistId: string,
+    tracks: Track[],
+    maxAgeDays: number
+): Promise<Track[]> {
+    const unixNowSeconds = Math.ceil(Date.now() / 1000);
+    const maxAgeSeconds = maxAgeDays * 24 * 60 * 60;
+    const agedOutTracks = tracks.filter(
+        (track) =>
+            track.spotifyAddedAtUnixSeconds &&
+            unixNowSeconds - track.spotifyAddedAtUnixSeconds > maxAgeSeconds
+    );
+
+    if (agedOutTracks.length === 0) {
+        return tracks;
+    }
+
+    const requests = Math.ceil(
+        agedOutTracks.length / MAX_PLAYLIST_MUTATIONS_LIMIT
+    );
+    for (let i = 0; i < requests; i++) {
+        const index = i * MAX_PLAYLIST_MUTATIONS_LIMIT;
+        const trackUrisToDelete = agedOutTracks
+            .slice(index, index + MAX_PLAYLIST_MUTATIONS_LIMIT)
+            .map((track) => {
+                return { uri: "spotify:track:" + track.spotifyId };
+            });
+
+        await apiDelete(
+            API_BASE_URL + "/playlists/" + playlistId + "/tracks",
+            {
+                tracks: trackUrisToDelete,
+            },
+            spotifyMutatePlaylistTracksResponseSchema,
+            {
+                Authorization: "Bearer " + accessToken,
+            }
+        );
+    }
+
+    return tracks.filter((track) => !agedOutTracks.includes(track));
 }
 
 async function searchForSpotifyTrack(
@@ -107,12 +156,12 @@ async function searchForSpotifyTrack(
     const requestParams = new URLSearchParams({
         q: "track:" + name.trim() + " artist:" + artist.trim(),
         type: "track",
-        market: SPOTIFY_MARKET,
+        market: MARKET,
         limit: "1",
     });
 
     const searchTrackResponse = await apiGet(
-        SPOTIFY_API_BASE_URL + "/search?" + requestParams.toString(),
+        API_BASE_URL + "/search?" + requestParams.toString(),
         spotifySearchTracksResponseSchema,
         {
             Authorization: "Bearer " + accessToken,
@@ -152,20 +201,19 @@ async function addTracksToSpotifyPlaylist(
     playlistId: string,
     trackIds: string[]
 ) {
-    const maxItemsPerRequest = 100;
-    const requests = Math.ceil(trackIds.length / maxItemsPerRequest);
+    const requests = Math.ceil(trackIds.length / MAX_PLAYLIST_MUTATIONS_LIMIT);
     for (let i = 0; i < requests; i++) {
-        const index = i * maxItemsPerRequest;
+        const index = i * MAX_PLAYLIST_MUTATIONS_LIMIT;
         const trackUrisToAdd = trackIds
-            .slice(index, index + maxItemsPerRequest)
+            .slice(index, index + MAX_PLAYLIST_MUTATIONS_LIMIT)
             .map((trackId) => "spotify:track:" + trackId);
 
         await apiPost(
-            SPOTIFY_API_BASE_URL + "/playlists/" + playlistId + "/tracks",
+            API_BASE_URL + "/playlists/" + playlistId + "/tracks",
             {
                 uris: trackUrisToAdd,
             },
-            spotifyAddPlaylistTracksResponseSchema,
+            spotifyMutatePlaylistTracksResponseSchema,
             {
                 Authorization: "Bearer " + accessToken,
             }
@@ -177,12 +225,10 @@ function identifyNewTracks(
     newTracks: Track[],
     existingTracks: Track[]
 ): Track[] {
-    const existingSet = new Set(
-        existingTracks.map((track) => track.name + "::" + track.artist)
-    );
-    return newTracks.filter(
-        (track) => !existingSet.has(track.name + "::" + track.artist)
-    );
+    const trackKey = (track: Track) =>
+        `${track.name.trim().toLowerCase()}\0${track.artist.trim().toLowerCase()}`;
+    const existingSet = new Set(existingTracks.map(trackKey));
+    return newTracks.filter((track) => !existingSet.has(trackKey(track)));
 }
 
 export async function addUniqueTracksToSpotifyPlaylist(
@@ -190,11 +236,27 @@ export async function addUniqueTracksToSpotifyPlaylist(
     tracks: Track[]
 ): Promise<number> {
     const spotifyAccessToken = await getSpotifyAccessToken();
-    const existingTracks = await getSpotifyPlaylistTracks(
+    let existingTracks = await getSpotifyPlaylistTracks(
         spotifyAccessToken,
         playlistId
     );
-    // First, identify new tracks just from the name and artist.
+
+    // Delete any tracks that were added earlier than the "rolling window" max age,
+    // but only if a max age in days has been set as an environment variable.
+    const recentRollingMaxAgeDaysResult =
+        spotifyRecentRollingMaxAgeDaysSchema.safeParse(
+            process.env.SPOTIFY_RECENT_ROLLING_MAX_AGE_DAYS
+        );
+    if (recentRollingMaxAgeDaysResult.success) {
+        existingTracks = await applyRollingWindowToSpotifyPlaylist(
+            spotifyAccessToken,
+            playlistId,
+            existingTracks,
+            recentRollingMaxAgeDaysResult.data
+        );
+    }
+
+    // Identify new tracks just from the name and artist.
     // This first pass is imperfect but does save a good number of Spotify search API calls.
     const tracksToAdd = identifyNewTracks(tracks, existingTracks);
     if (tracksToAdd.length === 0) {

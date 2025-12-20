@@ -1,5 +1,6 @@
 export type Track = {
-	name: string;
-	artist: string;
-	spotifyId?: string;
+    name: string;
+    artist: string;
+    spotifyId?: string;
+    spotifyAddedAtUnixSeconds?: number;
 };

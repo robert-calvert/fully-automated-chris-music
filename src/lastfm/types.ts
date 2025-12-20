@@ -2,14 +2,18 @@ import { z } from "zod";
 
 /* Recent Tracks */
 
+export const lastFmRecentCutoffSecondsSchema = z.coerce.number().min(3600);
+
 const lastFmRecentTrackSchema = z.object({
     name: z.string().nonempty(),
     artist: z.object({
         "#text": z.string().nonempty(),
     }),
-    date: z.object({
-        uts: z.coerce.number().gt(0),
-    }),
+    date: z
+        .object({
+            uts: z.coerce.number().gt(0),
+        })
+        .optional(),
 });
 
 export const lastFmRecentTracksResponseSchema = z.object({

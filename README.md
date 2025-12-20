@@ -44,7 +44,7 @@ LASTFM_RECENT_CUTOFF_SECONDS=86400
 # The period over which to measure top tracks. Any of: overall | 7day | 1month | 3month | 6month | 12month
 LASTFM_TOP_PERIOD=7day
 # The minimum play count for a track to be included in a top tracks job run.
-LASTFM_TOP_MIN_PLAY_COUNT=3
+LASTFM_TOP_MIN_PLAY_COUNT=5
 
 # Spotify
 # The Client ID of your Spotify API app.
@@ -55,9 +55,10 @@ SPOTIFY_CLIENT_SECRET=
 SPOTIFY_REFRESH_TOKEN=
 # The market of your Spotify user to determine track availability.
 SPOTIFY_MARKET=NZ
-# The ID of the Spotify playlist to add recent tracks to.
-SPOTIFY_RECENT_PLAYLIST_ID=
 # The ID of the Spotify playlist to add top tracks to.
 SPOTIFY_TOP_PLAYLIST_ID=
-
+# The ID of the Spotify playlist to add recent tracks to.
+SPOTIFY_RECENT_PLAYLIST_ID=
+# An optional maximum age, in days, of a track in the recent playlist before it is deleted on the next run.
+RECENT_ROLLING_MAX_AGE_DAYS=30
 ```

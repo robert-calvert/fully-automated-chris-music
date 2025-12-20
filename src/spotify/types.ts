@@ -10,6 +10,10 @@ export type SpotifyAccessTokenResponse = z.infer<
     typeof spotifyAccessTokenResponseSchema
 >;
 
+/* Rolling Window Max Age */
+
+export const spotifyRecentRollingMaxAgeDaysSchema = z.coerce.number().min(1);
+
 /* Search Tracks */
 
 const spotifySearchTracksItemSchema = z.object({
@@ -57,6 +61,7 @@ export const spotifyPlaylistTracksResponseSchema = z.object({
                     })
                 ),
             }),
+            added_at: z.iso.datetime(),
         })
     ),
 });
@@ -65,8 +70,8 @@ export type SpotifyPlaylistTracksResponse = z.infer<
     typeof spotifyPlaylistTracksResponseSchema
 >;
 
-/* Add Playlist Tracks Response */
+/* Add/Delete Playlist Tracks Response */
 
-export const spotifyAddPlaylistTracksResponseSchema = z.object({
+export const spotifyMutatePlaylistTracksResponseSchema = z.object({
     snapshot_id: z.string().nonempty(),
 });
