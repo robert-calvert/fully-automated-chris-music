@@ -23,7 +23,8 @@ async function runRecentTracksJob() {
 
         const addedCount = await addUniqueTracksToSpotifyPlaylist(
             playlistId,
-            newRecentTracks
+            newRecentTracks,
+            true
         );
         console.log(
             prefix,

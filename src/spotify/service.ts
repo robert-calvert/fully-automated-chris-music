@@ -104,7 +104,7 @@ async function getSpotifyPlaylistTracks(
     return allTracks;
 }
 
-async function applyRollingWindowToSpotifyPlaylist(
+export async function applyRollingWindowToSpotifyPlaylist(
     accessToken: string,
     playlistId: string,
     tracks: Track[],
@@ -233,7 +233,8 @@ function identifyNewTracks(
 
 export async function addUniqueTracksToSpotifyPlaylist(
     playlistId: string,
-    tracks: Track[]
+    tracks: Track[],
+    applyRollingWindow: boolean = false
 ): Promise<number> {
     const spotifyAccessToken = await getSpotifyAccessToken();
     let existingTracks = await getSpotifyPlaylistTracks(
@@ -247,7 +248,7 @@ export async function addUniqueTracksToSpotifyPlaylist(
         spotifyRecentRollingMaxAgeDaysSchema.safeParse(
             process.env.SPOTIFY_RECENT_ROLLING_MAX_AGE_DAYS
         );
-    if (recentRollingMaxAgeDaysResult.success) {
+    if (applyRollingWindow && recentRollingMaxAgeDaysResult.success) {
         existingTracks = await applyRollingWindowToSpotifyPlaylist(
             spotifyAccessToken,
             playlistId,
