@@ -5,7 +5,8 @@ import { addUniqueTracksToSpotifyPlaylist } from "./spotify/service";
 dotenv.config({ path: __dirname + "/../.env", quiet: true });
 
 async function runTopTracksJob() {
-    const prefix = "[Top Tracks]";
+    const prefix =
+        "[Top Tracks] (" + new Date().toLocaleDateString("en-GB") + ")";
 
     try {
         const playlistId = process.env.SPOTIFY_TOP_PLAYLIST_ID;
@@ -21,13 +22,13 @@ async function runTopTracksJob() {
             return;
         }
 
-        const addedCount = await addUniqueTracksToSpotifyPlaylist(
+        const counts = await addUniqueTracksToSpotifyPlaylist(
             playlistId,
             newTopTracks
         );
         console.log(
             prefix,
-            "Added " + addedCount + " new tracks to the top tracks playlist."
+            "Added " + counts[0] + " new tracks to the top tracks playlist."
         );
     } catch (error: unknown) {
         console.error(prefix, error);

@@ -104,7 +104,7 @@ async function getSpotifyPlaylistTracks(
     return allTracks;
 }
 
-export async function applyRollingWindowToSpotifyPlaylist(
+async function applyRollingWindowToSpotifyPlaylist(
     accessToken: string,
     playlistId: string,
     tracks: Track[],
@@ -235,7 +235,7 @@ export async function addUniqueTracksToSpotifyPlaylist(
     playlistId: string,
     tracks: Track[],
     applyRollingWindow: boolean = false
-): Promise<number> {
+): Promise<[number, number]> {
     const spotifyAccessToken = await getSpotifyAccessToken();
     let existingTracks = await getSpotifyPlaylistTracks(
         spotifyAccessToken,
@@ -248,6 +248,8 @@ export async function addUniqueTracksToSpotifyPlaylist(
         spotifyRecentRollingMaxAgeDaysSchema.safeParse(
             process.env.SPOTIFY_RECENT_ROLLING_MAX_AGE_DAYS
         );
+    const previousTrackCount = existingTracks.length;
+    let deletedCount = 0;
     if (applyRollingWindow && recentRollingMaxAgeDaysResult.success) {
         existingTracks = await applyRollingWindowToSpotifyPlaylist(
             spotifyAccessToken,
@@ -255,13 +257,14 @@ export async function addUniqueTracksToSpotifyPlaylist(
             existingTracks,
             recentRollingMaxAgeDaysResult.data
         );
+        deletedCount = previousTrackCount - existingTracks.length;
     }
 
     // Identify new tracks just from the name and artist.
     // This first pass is imperfect but does save a good number of Spotify search API calls.
     const tracksToAdd = identifyNewTracks(tracks, existingTracks);
     if (tracksToAdd.length === 0) {
-        return 0;
+        return [0, deletedCount];
     }
 
     // Then do a second pass for duplicates on the exact IDs of the track search results.
@@ -272,7 +275,7 @@ export async function addUniqueTracksToSpotifyPlaylist(
         (trackId): trackId is string => !existingTrackIds.includes(trackId)
     );
     if (newTrackIds.length === 0) {
-        return 0;
+        return [0, deletedCount];
     }
 
     await addTracksToSpotifyPlaylist(
@@ -281,5 +284,5 @@ export async function addUniqueTracksToSpotifyPlaylist(
         newTrackIds
     );
 
-    return newTrackIds.length;
+    return [newTrackIds.length, deletedCount];
 }

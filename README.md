@@ -44,7 +44,7 @@ LASTFM_RECENT_CUTOFF_SECONDS=86400
 # The period over which to measure top tracks. Any of: overall | 7day | 1month | 3month | 6month | 12month
 LASTFM_TOP_PERIOD=7day
 # The minimum play count for a track to be included in a top tracks job run.
-LASTFM_TOP_MIN_PLAY_COUNT=5
+LASTFM_TOP_MIN_PLAY_COUNT=4
 
 # Spotify
 # The Client ID of your Spotify API app.
