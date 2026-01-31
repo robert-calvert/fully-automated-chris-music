@@ -1,7 +1,7 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { z, ZodError, ZodType } from "zod";
 
-const REQUEST_TIMEOUT_MILLIS = 5000;
+const REQUEST_TIMEOUT_MILLIS = 10000;
 const RETRY_DELAY_MILLIS = 3000;
 
 export async function apiGet<T>(
@@ -74,11 +74,26 @@ async function requestWithRetry(
 
             return response;
         } catch (error: unknown) {
+            console.error(
+                "requestWithRetry",
+                new Date().toLocaleString("en-GB")
+            );
+            console.error("Request Config:", JSON.stringify(config, null, 2));
+
             if (axios.isAxiosError(error)) {
+                console.error("Axios Code:", error.code);
+                console.error("Axios Message:", error.message);
+                console.error("Axios Cause:", error.cause);
+                console.error(
+                    "Axios Response:",
+                    error.response?.status,
+                    error.response?.data
+                );
+
                 throw new Error(
                     error.response?.data
                         ? JSON.stringify(error.response.data)
-                        : "The request failed but no error was included."
+                        : `Axios Error: ${error.message} (${error.code})`
                 );
             }
 

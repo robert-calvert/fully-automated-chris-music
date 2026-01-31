@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import { getLastFmRecentTracks } from "./lastfm/service";
 import { addUniqueTracksToSpotifyPlaylist } from "./spotify/service";
+import { getMalojaRecentTracks } from "./maloja/service";
 
 dotenv.config({ path: __dirname + "/../.env", quiet: true });
 
@@ -16,9 +17,17 @@ async function runRecentTracksJob() {
             );
         }
 
-        const newRecentTracks = await getLastFmRecentTracks();
+        let newRecentTracks;
+        const scrobblingSource =
+            process.env.SCROBBLING_SOURCE?.toLowerCase()?.trim() || "maloja";
+        if (scrobblingSource === "lastfm") {
+            newRecentTracks = await getLastFmRecentTracks();
+        } else {
+            newRecentTracks = await getMalojaRecentTracks();
+        }
+
         if (newRecentTracks.length === 0) {
-            console.log(prefix, "No new recent tracks in Last.fm.");
+            console.log(prefix, "No new recent tracks.");
             return;
         }
 

@@ -1,6 +1,6 @@
-# Fully Automated Chris Music (Last.fm profile to Spotify playlists integration)
+# Fully Automated Chris Music
 
-A simple Node utility to pull top and recent scrobbles (track listens) from a public Last.fm profile and add them to your Spotify playlists. I developed this to keep up with a friend's music listening after he moved off Spotify.
+A simple Node utility to pull top and recent scrobbles (track listens) from either a private Maloja scrobbling server or a public Last.fm profile and add them to your Spotify playlists. I developed this to keep up with a friend's music listening after he moved off Spotify.
 
 ## Setup and Deployment
 
@@ -8,7 +8,9 @@ This is intended for use with a single Spotify account and for someone who can r
 
 ### APIs
 
-You will need to create a [Last.fm API](https://www.last.fm/api#getting-started) app to get a static API key.
+If using Maloja, you will need the base URL of the scrobbling server and a username and password for basic authentication.
+
+If using Last.fm, you will need to create a [Last.fm API](https://www.last.fm/api#getting-started) app to get a static API key.
 
 You will also need to create a [Spotify Web API](https://developer.spotify.com/documentation/web-api/tutorials/getting-started) app that you can authorise your Spotify account with, and get a refresh token for that has the `playlist-modify-private playlist-modify-public` scopes.
 
@@ -34,16 +36,33 @@ node ./build/top.js
 ## Environment Variables
 
 ```dotenv
+# "maloja" or "lastfm"
+SCROBBLING_SOURCE=maloja
+
+# Maloja
+# The base URL of the Maloja scrobbling server.
+MALOJA_BASE_URL=https://maloja.example.com
+# The username of your basic auth for Maloja.
+MALOJA_AUTH_USERNAME=
+# The password of your basic auth for Maloja.
+MALOJA_AUTH_PASSWORD=
+# The cutoff in seconds for the recent tracks job when pulling from Maloja.
+MALOJA_RECENT_CUTOFF_SECONDS=86400
+# The number of days in the past to measure listening for the top period.
+MALOJA_TOP_PERIOD_DAYS=7
+# The minimum play count for a track to be included in a top tracks job run when pulling from Maloja.
+MALOJA_TOP_MIN_PLAY_COUNT=4
+
 # Last.fm
 # The static API key of your Last.fm app.
 LASTFM_API_KEY=
 # The username of the Last.fm profile to pull listening data from.
 LASTFM_USERNAME=
-# The cutoff in seconds for the recent tracks job.
+# The cutoff in seconds for the recent tracks job when pulling from Last.fm.
 LASTFM_RECENT_CUTOFF_SECONDS=86400
 # The period over which to measure top tracks. Any of: overall | 7day | 1month | 3month | 6month | 12month
 LASTFM_TOP_PERIOD=7day
-# The minimum play count for a track to be included in a top tracks job run.
+# The minimum play count for a track to be included in a top tracks job run when pulling from Last.fm.
 LASTFM_TOP_MIN_PLAY_COUNT=4
 
 # Spotify

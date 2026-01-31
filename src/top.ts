@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import { getLastFmTopTracks } from "./lastfm/service";
 import { addUniqueTracksToSpotifyPlaylist } from "./spotify/service";
+import { getMalojaTopTracks } from "./maloja/service";
 
 dotenv.config({ path: __dirname + "/../.env", quiet: true });
 
@@ -16,9 +17,17 @@ async function runTopTracksJob() {
             );
         }
 
-        const newTopTracks = await getLastFmTopTracks();
+        let newTopTracks;
+        const scrobblingSource =
+            process.env.SCROBBLING_SOURCE?.toLowerCase()?.trim() || "maloja";
+        if (scrobblingSource === "lastfm") {
+            newTopTracks = await getLastFmTopTracks();
+        } else {
+            newTopTracks = await getMalojaTopTracks();
+        }
+
         if (newTopTracks.length === 0) {
-            console.log(prefix, "No new top tracks, stopping.");
+            console.log(prefix, "No new top tracks.");
             return;
         }
 
