@@ -5,13 +5,13 @@ import {
     spotifyPlaylistTracksResponseSchema,
     spotifyRecentRollingMaxAgeDaysSchema,
     spotifySearchTracksResponseSchema,
-} from "./types";
+} from "./schemas";
 import { apiDelete, apiGet, apiPost } from "../util/api";
-import { Track } from "../track";
+import { Track, UpdatePlaylistResult } from "./types";
 
 const API_BASE_URL = "https://api.spotify.com/v1";
 const MARKET = process.env.SPOTIFY_MARKET || "NZ";
-const MAX_PLAYLIST_ITEMS_LIMIT = 50;
+const MAX_PLAYLIST_ITEMS_LIMIT = 10;
 const MAX_PLAYLIST_MUTATIONS_LIMIT = 100;
 
 async function getSpotifyAccessToken(): Promise<string> {
@@ -46,7 +46,7 @@ async function getPageOfSpotifyPlaylistItems(
     offset: number
 ): Promise<SpotifyPlaylistTracksResponse> {
     const requestParams = new URLSearchParams({
-        fields: "total,limit,offset,next,items(added_at,track(id,name,artists))",
+        fields: "total,limit,offset,next,items(added_at,item(id,name,artists))",
         market: MARKET,
         limit: MAX_PLAYLIST_ITEMS_LIMIT.toString(),
         offset: offset.toString(),
@@ -56,7 +56,7 @@ async function getPageOfSpotifyPlaylistItems(
         API_BASE_URL +
             "/playlists/" +
             playlistId +
-            "/tracks?" +
+            "/items?" +
             requestParams.toString(),
         spotifyPlaylistTracksResponseSchema,
         {
@@ -82,11 +82,11 @@ async function getSpotifyPlaylistTracks(
         );
         for (const item of pageResponse.items) {
             allTracks.push({
-                name: item.track.name,
-                artist: item.track.artists
+                name: item.item.name,
+                artist: item.item.artists
                     .map((artist) => artist.name)
                     .join(", "),
-                spotifyId: item.track.id,
+                spotifyId: item.item.id,
                 spotifyAddedAtUnixSeconds: Math.ceil(
                     new Date(item.added_at).getTime() / 1000
                 ),
@@ -134,9 +134,9 @@ async function applyRollingWindowToSpotifyPlaylist(
             });
 
         await apiDelete(
-            API_BASE_URL + "/playlists/" + playlistId + "/tracks",
+            API_BASE_URL + "/playlists/" + playlistId + "/items",
             {
-                tracks: trackUrisToDelete,
+                items: trackUrisToDelete,
             },
             spotifyMutatePlaylistTracksResponseSchema,
             {
@@ -235,7 +235,7 @@ export async function addUniqueTracksToSpotifyPlaylist(
     playlistId: string,
     tracks: Track[],
     applyRollingWindow: boolean = false
-): Promise<[number, number]> {
+): Promise<UpdatePlaylistResult> {
     const spotifyAccessToken = await getSpotifyAccessToken();
     let existingTracks = await getSpotifyPlaylistTracks(
         spotifyAccessToken,
@@ -264,7 +264,10 @@ export async function addUniqueTracksToSpotifyPlaylist(
     // This first pass is imperfect but does save a good number of Spotify search API calls.
     const tracksToAdd = identifyNewTracks(tracks, existingTracks);
     if (tracksToAdd.length === 0) {
-        return [0, deletedCount];
+        return {
+            tracksAdded: 0,
+            tracksDeleted: deletedCount,
+        };
     }
 
     // Then do a second pass for duplicates on the exact IDs of the track search results.
@@ -275,7 +278,10 @@ export async function addUniqueTracksToSpotifyPlaylist(
         (trackId): trackId is string => !existingTrackIds.includes(trackId)
     );
     if (newTrackIds.length === 0) {
-        return [0, deletedCount];
+        return {
+            tracksAdded: 0,
+            tracksDeleted: deletedCount,
+        };
     }
 
     await addTracksToSpotifyPlaylist(
@@ -284,5 +290,8 @@ export async function addUniqueTracksToSpotifyPlaylist(
         newTrackIds
     );
 
-    return [newTrackIds.length, deletedCount];
+    return {
+        tracksAdded: newTrackIds.length,
+        tracksDeleted: deletedCount,
+    };
 }

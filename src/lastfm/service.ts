@@ -5,10 +5,10 @@ import {
     lastFmTopTracksMinPlayCountSchema,
     lastFmTopTracksPeriodSchema,
     lastFmTopTracksResponseSchema,
-} from "./types";
+} from "./schemas";
 import { apiGet } from "../util/api";
-import { Track } from "../track";
 import { z } from "zod";
+import { Track } from "../spotify/types";
 
 const LAST_FM_API_BASE_URL = "https://ws.audioscrobbler.com/2.0/";
 const LAST_FM_API_MAX_LIMIT = 200;

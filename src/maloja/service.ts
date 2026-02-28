@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { Track } from "../track";
 import { apiGet } from "../util/api";
 import {
     malojaRecentCutoffSecondsSchema,
@@ -7,8 +6,9 @@ import {
     malojaScrobblesResponseSchema,
     malojaTopPeriodDaysSchema,
     malojaTopTracksMinPlayCountSchema,
-} from "./types";
+} from "./schemas";
 import { formatDateYYYYMMDD } from "../util/date";
+import { Track } from "../spotify/types";
 
 const MALOJA_MAX_PER_PAGE = 2500;
 const DAY_IN_SECONDS = 86400;

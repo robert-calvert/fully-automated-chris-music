@@ -2,6 +2,12 @@ import dotenv from "dotenv";
 import { getLastFmRecentTracks } from "./lastfm/service";
 import { addUniqueTracksToSpotifyPlaylist } from "./spotify/service";
 import { getMalojaRecentTracks } from "./maloja/service";
+import { Track } from "./spotify/types";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotenv.config({ path: __dirname + "/../.env", quiet: true });
 
@@ -17,7 +23,7 @@ async function runRecentTracksJob() {
             );
         }
 
-        let newRecentTracks;
+        let newRecentTracks: Track[];
         const scrobblingSource =
             process.env.SCROBBLING_SOURCE?.toLowerCase()?.trim() || "maloja";
         if (scrobblingSource === "lastfm") {
@@ -31,7 +37,7 @@ async function runRecentTracksJob() {
             return;
         }
 
-        const counts = await addUniqueTracksToSpotifyPlaylist(
+        const result = await addUniqueTracksToSpotifyPlaylist(
             playlistId,
             newRecentTracks,
             true
@@ -39,9 +45,9 @@ async function runRecentTracksJob() {
         console.log(
             prefix,
             "Added " +
-                counts[0] +
+                result.tracksAdded +
                 " new tracks to the recent tracks playlist, deleted " +
-                counts[1] +
+                result.tracksDeleted +
                 "."
         );
     } catch (error: unknown) {

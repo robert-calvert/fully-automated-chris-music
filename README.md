@@ -19,18 +19,17 @@ You will also need to create a [Spotify Web API](https://developer.spotify.com/d
 First-time setup:
 ```
 npm install
-npm run build
 ```
 Create a `.env` file as per the example below.
 
 Running the **recent tracks** job, that adds tracks listened to in a set period (e.g. last 24 hours) to the target Spotify playlist:
 ```
-node ./build/recent.js
+npx tsx src/recent.ts
 ```
 
 Running the **top tracks** job, that adds the top tracks listened to over a longer period (e.g. last 7 days) over a defined play count to the target Spotify playlist:
 ```
-node ./build/top.js
+npx tsx src/top.ts
 ```
 
 ## Environment Variables

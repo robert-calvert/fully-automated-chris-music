@@ -2,6 +2,12 @@ import dotenv from "dotenv";
 import { getLastFmTopTracks } from "./lastfm/service";
 import { addUniqueTracksToSpotifyPlaylist } from "./spotify/service";
 import { getMalojaTopTracks } from "./maloja/service";
+import { Track } from "./spotify/types";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotenv.config({ path: __dirname + "/../.env", quiet: true });
 
@@ -17,7 +23,7 @@ async function runTopTracksJob() {
             );
         }
 
-        let newTopTracks;
+        let newTopTracks: Track[];
         const scrobblingSource =
             process.env.SCROBBLING_SOURCE?.toLowerCase()?.trim() || "maloja";
         if (scrobblingSource === "lastfm") {
@@ -31,13 +37,15 @@ async function runTopTracksJob() {
             return;
         }
 
-        const counts = await addUniqueTracksToSpotifyPlaylist(
+        const result = await addUniqueTracksToSpotifyPlaylist(
             playlistId,
             newTopTracks
         );
         console.log(
             prefix,
-            "Added " + counts[0] + " new tracks to the top tracks playlist."
+            "Added " +
+                result.tracksAdded +
+                " new tracks to the top tracks playlist."
         );
     } catch (error: unknown) {
         console.error(prefix, error);
